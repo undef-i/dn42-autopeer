@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" data-mdb-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Register</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <link href="{{ url_for('static',filename='css/bootstrap.min.css') }}" rel="stylesheet" />
+    <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/snackbar.min.css') }}">
+    <style>
+        .modal {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-dialog {
+            margin: 0;
+        }
+        
+    </style>
+</head>
+
+<body class="container" style="max-width: 600px">
+
+
+    <div class="modal show" tabindex="-1" style="display: block;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    Register&nbsp;
+                    <div class="spinner-border spinner-border-sm" role="status" id="spinner" style="display:none;">
+                        <span class="visually-hidden"></span>
+                    </div>
+                </div>
+                <div id="registerForm" class="modal-body">
+
+                    <br>
+                    <div class="input-group">
+                        <span class="input-group-text">AS</span>
+                        <input type="text" aria-label="ASN" class="form-control" id="ASN" name="ASN">
+                    </div>
+                    <div id="authTypeContainer" style="display: none; overflow: auto;">
+                        <div>
+                            <label >Select Authentication Type:</label>
+                            <div class="form-check">
+                                <input class="form-check-input" name="authType" type="radio" id="emailAuth" value="email">
+                                <label class="form-check-label" for="emailAuth" style="display: grid;">Email Authentication
+                                    <span id="emailAddress" style="display: block;overflow: hidden;"></span></label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" name="authType" type="radio" id="authAuth" value="auth">
+                                <label class="form-check-label" for="authAuth" style="display: grid;">Key Authentication
+                                    <span id="authInfo" style="display: block;overflow: hidden; "></span></label>
+                            </div>
+                        </div>
+                        <br>
+                    </div>
+
+                    <form class="form-inline" id="emailVerificationContainer" style="display: none;"> 
+                        <div class="form-group mx-sm-3 mb-2">
+                          <input class="form-control" class="form-control" id="verificationCode" name="verificationCode"
+                          placeholder="Verification Code">
+                        </div>
+                        <button type="submit" class="btn btn-primary mb-2" id="sendVerificationButton"
+                        onclick="sendVerificationCode()">Send Verification Code</button>
+                      </form>
+
+                    <div id="authAuthContainer" style="display: none;">
+                        <div class="mb-3">
+                            <label for="randomText" >Unsigned Message:</label>
+                            <input type="text" class="form-control" id="randomText" readonly value="U2FsdGVkX19UqLcfZVBTJOiez/JeD1SWIfDI1pFGQaQ=">
+                        </div>
+                        <div class="mb-3">
+                            <label for="theCode" >Paste following command to your terminal to get your public key and signature.</label>
+                            <textarea type="text" class="form-control" id="theCode" readonly value="" rows="4" style="cursor: pointer;"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="publicKey" >Public Key:</label>
+                            <textarea class="form-control" id="publicKey" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signedText" >Signature</label>
+                            <textarea class="form-control" id="signedText" rows="3"></textarea>
+                        </div>
+                        
+                    </div>
+                    <br>
+                    <div class="modal-footer">
+                    <button id="nextButton" onclick="nextStep()" class="btn btn-primary" style="float: right;">Next Step</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br>
+
+    <div id="infoContainer"></div>
+    <script src="{{ url_for('static',filename='js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static',filename='js/bootstrap.js') }}"></script>
+    <script src="{{ url_for('static',filename='js/snackbar.min.js') }}"></script>
+    <script src="{{ url_for('static',filename='js/register.js') }}"></script>
+</body>
+
+</html>

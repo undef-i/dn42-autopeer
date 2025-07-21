@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/98.css">
+    <style>
+        .form-check-inline {
+            display: inline-block;
+        }
+        .modal-centered {
+            position: fixed;
+            top: 100px;
+            max-width: calc(100% - 18px);
+            width: fit-content;
+            max-height: 100%;
+            overflow: auto;
+            z-index: 1000;
+            min-width: 250px;
+            padding: 3px;
+        }
+        body {
+            overflow: hidden;
+            background-color: navy;
+            user-select:none;
+        }
+        label {
+            width: 100%;
+        }
+        .field-row-input {
+            display: block;
+        }
+        .field-row-input.hidden {
+            visibility: hidden;
+        }
+        pre {
+            max-height: 200px;
+            overflow: auto;
+            white-space: pre;
+            overflow-x: auto;
+        }
+        .window-body {
+            overflow-x: hidden; /* Remove horizontal scrollbar from window */
+        }
+    </style>
+        <script src="{{ url_for('static',filename='js/dashboard.js') }}"></script>
+</head>
+
+<body>
+    <div class="window" style="margin: 0 auto; max-width: fit-content; min-width: min(100%, 860px);">
+        <div class="title-bar">
+            <div class="title-bar-text">Dashboard</div>
+        </div>
+        <div class="window-body">
+
+
+            <h2>AS{{ session['ASN'] }}</h2>
+            <button onclick="window.location.href = '/logout';">Logout</button>
+
+            <h2 id="tunnel-infomation">Tunnel Information</h2>
+            <div style="overflow-x: auto;">
+                <table class="table" id="tunnelTable">
+                    <thead id="tunnelTableHeader">
+                        <tr>
+                            <th>Wireguard Public Key</th>
+                            <th>Endpoint</th>
+                            <th>IPv6 Link Local</th>
+                            <th>IPv4</th>
+                            <th>IPv6</th>
+                            <th>Multiprotocol BGP</th>
+                            <th>Extended Next Hop</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        {% for tunnel in tunnels %}
+                        <tr>
+                            <td>{{ tunnel.wireguard_public_key }}</td>
+                            <td>{{ tunnel.endpoint }}</td>
+                            <td>{{ tunnel.ipv6_link_local }}</td>
+                            <td>{{ tunnel.ipv4 }}</td>
+                            <td>{{ tunnel.ipv6 }}</td>
+                            <td>{{ 'Yes' if tunnel.multiprotocol_bgp else 'No' }}</td>
+                            <td>{{ 'Yes' if tunnel.extended_next_hop else 'No' }}</td>
+                            <td>
+                                <button class="button" onclick="showEditTunnelModal({{ tunnel.id }});updateConfig{{ tunnel.id }}();">Edit</button>
+                                <form action="{{ url_for('delete_tunnel', tunnel_id=tunnel.id) }}" method="post" style="display:inline;">
+                                    <button class="button" type="submit" onclick="return confirm('Are you sure you want to delete this tunnel?');">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                                
+
+                    </tbody>
+                </table>
+            </div>
+
+            <button id="addTunnelButton" class="button" onclick="showAddTunnelModal();updateConfigAdd();">Add Tunnel</button>
+
+            <div class="window modal-centered" id="addTunnelModal" style="display:none;">
+                <div class="title-bar draggable">
+                    <div class="title-bar-text">Add Tunnel</div>
+                    <div class="title-bar-controls">
+                        <button aria-label="Close" onclick="closeAndResetModal('addTunnelModal', 'editTunnelFormAdd')"></button>
+                      </div>
+                </div>
+                <div class="window-body">
+                    <form id="editTunnelFormAdd" onsubmit="return form_validate(this);" method="post" action="/add_tunnel">
+                        <div class="field-row">
+                            <label class="field-row-label" for="peer-wgkeyAdd">Wireguard Public Key</label>
+                            <input type="text" class="field-row-input" id="peer-wgkeyAdd" name="wireguard_public_key" onchange="updateConfigAdd();" required>
+                        </div>
+                        <div class="field-row">
+                            
+                                <input type="checkbox" id="peer-endpoint-enabledAdd" name="endpoint_enabled" onchange="toggleTextbox(this, 'peer-endpointAdd'); updateConfigAdd();">
+                                  <label  for="peer-endpoint-enabledAdd">Endpoint (IP:Port)
+                            </label>
+                            <input type="text" class="field-row-input hidden" id="peer-endpointAdd" name="endpoint" data-related-checkbox="peer-endpoint-enabledAdd" onchange="updateConfigAdd();">
+                        </div>
+                        <div class="field-row">
+                            
+                                <input type="checkbox" id="peer-v6ll-enabledAdd" name="ipv6_link_local_enabled" onchange="toggleTextbox(this, 'peer-v6llAdd'); updateConfigAdd();">
+                                  <label  for="peer-v6ll-enabledAdd">IPv6 Link Local
+                            </label>
+                            <input type="text" class="field-row-input hidden" id="peer-v6llAdd" name="ipv6_link_local"  onchange="updateConfigAdd();">
+                        </div>
+                        <div class="field-row">
+                           
+                                <input type="checkbox" id="peer-v4-enabledAdd" name="ipv4_enabled" onchange="toggleTextbox(this, 'peer-v4Add'); updateConfigAdd();">
+                                   <label  for="peer-v4-enabledAdd">IPv4
+                            </label>
+                            <input type="text" class="field-row-input hidden" id="peer-v4Add" name="ipv4" data-related-checkbox="peer-v4-enabledAdd" onchange="updateConfigAdd();">
+                        </div>
+                        <div class="field-row">
+                            
+                                <input type="checkbox" id="peer-v6-enabledAdd" name="ipv6_enabled" onchange="toggleTextbox(this, 'peer-v6Add'); updateConfigAdd();">
+                                 <label  for="peer-v6-enabledAdd"> IPv6
+                            </label>
+                            <input type="text" class="field-row-input hidden" id="peer-v6Add" name="ipv6" data-related-checkbox="peer-v6-enabledAdd" onchange="updateConfigAdd();">
+                        </div>
+                        <div class="field-row">
+                            
+                                <input type="checkbox" id="bgp-multi-protocolAdd" name="multiprotocol_bgp" onchange="updateConfigAdd();">
+                                <label  for="bgp-multi-protocolAdd">  Multiprotocol BGP
+                            </label>
+                        </div>
+                        <div class="field-row">
+                           
+                                <input type="checkbox" id="bgp-extended-next-hopAdd" name="extended_next_hop" onchange="updateConfigAdd();">
+                                <label  for="bgp-extended-next-hopAdd">Extended Next Hop
+                            </label>
+                        </div>
+                        <div style="margin-top: 10px;width: 460px;    display: contents;">
+                            <pre id="outputConfigBirdAdd"></pre>
+                            <pre id="outputConfigWgAdd"></pre>
+                            <script>
+                                function toggleTextbox(checkbox, textboxId) {
+                                    const textbox = document.getElementById(textboxId);
+                                    if (textbox) {
+                                        if (checkbox.checked) {
+                                            textbox.classList.remove('hidden');
+                                        } else {
+                                            textbox.classList.add('hidden');
+                                            textbox.value = ''; 
+                                        }
+                                    }
+                                }
+
+                                function updateConfigAdd(){
+                                    let form = document.getElementById("editTunnelFormAdd");
+
+                                    let output_bird = document.getElementById("outputConfigBirdAdd");
+                                    let output_wg = document.getElementById("outputConfigWgAdd");
+                                    let endpoint_enabled = form.querySelector("input[id^='peer-endpoint-enabledAdd']").checked;
+                                    let endpoint = form.querySelector("input[name='endpoint']").value;
+                                    let ipv6ll_enabled = form.querySelector("input[id^='peer-v6ll-enabledAdd']").checked;
+                                    let ipv4_enabled = form.querySelector("input[id^='peer-v4-enabledAdd']").checked;
+                                    let ipv6_enabled = form.querySelector("input[id^='peer-v6-enabledAdd']").checked;
+                                    let ipv6ll = form.querySelector("input[name='ipv6_link_local']").value;
+                                    let ipv4 = form.querySelector("input[name='ipv4']").value;
+                                    let ipv6 = form.querySelector("input[name='ipv6']").value;
+                                    let bgp_mp = form.querySelector("input[id^='bgp-multi-protocolAdd']").checked;
+                                    let bgp_enh = form.querySelector("input[id^='bgp-extended-next-hopAdd']").checked;
+                                    let wg_key = form.querySelector("input[name='wireguard_public_key']").value;
+                                
+                                    let wg_config = `# /etc/wireguard/dn42_0454.conf
+[Interface]
+PrivateKey = <your private key>
+ListenPort = 20454
+${ipv4_enabled ? `PostUp = ip address add dev ${ipv4} peer 172.22.159.100\n` : ''}${ipv6_enabled ? `PostUp = ip address add dev ${ipv6} peer fdef:fa9b:62b::1\n` : ''}${ipv6ll_enabled ? `PostUp = ip address add dev ${ipv6ll} peer fe80::454\n` : ''}
+[Peer]
+PublicKey = ${wg_key}
+Endpoint = dn42a.nedifinita.com:{{ session['ASN'][-5:] }}
+AllowedIPs = 10.0.0.0/8, 172.20.0.0/14, 172.31.0.0/16, fd00::/8, fe80::/64`;
+
+                                    
+                                    if (!bgp_mp) {
+                                        bird_config = `# /etc/bird/peers/dn42_0454.conf
+protocol bgp dn42_0454_v4 from dnpeers {
+neighbor 172.22.159.100 as 4242420454;
+interface "dn42_0454";
+ipv4 {};
+}
+
+protocol bgp dn42_0454_v6 from dnpeers {
+neighbor fe80::454 as 4242420454;
+neighbor fdef:fa9b:62b::1 as 4242420454;
+interface "dn42_0454";
+ipv6 {};
+}`;
+                                    } else {
+                                        bird_config = `# /etc/bird/peers/dn42_0454.conf
+protocol bgp dn42_0454 from dnpeers {
+neighbor fe80::454 as 4242420454;
+interface "dn42_0454";
+ipv4 {
+extended next hop ${bgp_enh ? 'on' : 'off'};
+};
+ipv6 {
+extended next hop off;
+};
+}`;
+                                    }
+                                
+                                    if (!form_validate(form)) {
+                                                        output_bird.innerText = "";
+                                                        output_wg.innerText = "";
+                                                        output_bird.style.display = 'none';
+                                                        output_wg.style.display = 'none';
+                                                        return;
+                                                    }
+                                                    output_bird.innerText = bird_config;
+                                                    output_wg.innerText = wg_config;
+                                                    output_wg.style.display = 'block';
+                                                    output_bird.style.display = 'block';
+
+                                }
+                                
+                                toggleTextbox(document.getElementById("peer-endpoint-enabledAdd"), "peer-endpointAdd");
+                                toggleTextbox(document.getElementById("peer-v6ll-enabledAdd"), "peer-v6llAdd");
+                                toggleTextbox(document.getElementById("peer-v4-enabledAdd"), "peer-v4Add");
+                                toggleTextbox(document.getElementById("peer-v6-enabledAdd"), "peer-v6Add");
+                                
+                                updateConfigAdd();
+                            </script>
+                        </div>
+                        <div id="peer-invalid-noteAdd" class="mdui-text-color-red"></div>
+                        <button type="submit" class="button">Save Changes</button>
+                    </form>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+    {% for tunnel in tunnels %}
+    <div class="window modal-centered" id="editTunnelModal{{ tunnel.id }}" style="display:none;">
+        <div class="title-bar draggable">
+            <div class="title-bar-text">Edit Tunnel Information</div>
+            <div class="title-bar-controls">
+                <button aria-label="Close" onclick="closeAndResetModal('editTunnelModal{{ tunnel.id }}', 'editTunnelForm{{ tunnel.id }}')"></button>
+             
+            </div>
+        </div>
+        <div class="window-body">
+            <form id="editTunnelForm{{ tunnel.id }}" onsubmit="return form_validate(this);" method="post" action="/edit_tunnel/{{ tunnel.id }}">
+                <div class="field-row">
+                    <label class="field-row-label" for="peer-wgkey{{ tunnel.id }}">Wireguard Public Key</label>
+                    <input type="text" class="field-row-input" id="peer-wgkey{{ tunnel.id }}" name="wireguard_public_key" value="{{ tunnel.wireguard_public_key }}" onchange="updateConfig{{ tunnel.id }}();" required>
+                </div>
+                <div class="field-row">
+                    
+                        <input type="checkbox" id="peer-endpoint-enabled{{ tunnel.id }}" name="endpoint_enabled" onchange="toggleTextbox(this, 'peer-endpoint{{ tunnel.id }}'); updateConfig{{ tunnel.id }}();" {% if tunnel.endpoint %}checked{% endif %}>
+                        
+                        <label for="peer-endpoint-enabled{{ tunnel.id }}">Endpoint (IP:Port)</label>
+                    <input type="text" class="field-row-input hidden" id="peer-endpoint{{ tunnel.id }}" name="endpoint" value="{{ tunnel.endpoint }}" data-related-checkbox="peer-endpoint-enabled{{ tunnel.id }}" onchange="updateConfig{{ tunnel.id }}();">
+                </div>
+                <div class="field-row">
+                        <input type="checkbox" id="peer-v6ll-enabled{{ tunnel.id }}" name="ipv6_link_local_enabled" onchange="toggleTextbox(this, 'peer-v6ll{{ tunnel.id }}'); updateConfig{{ tunnel.id }}();" {% if tunnel.ipv6_link_local %}checked{% endif %}>
+                        <label for="peer-v6ll-enabled{{ tunnel.id }}">IPv6 Link Local</label>
+                    
+                    <input type="text" class="field-row-input hidden" id="peer-v6ll{{ tunnel.id }}" name="ipv6_link_local" value="{{ tunnel.ipv6_link_local }}" data-related-checkbox="peer-v6ll-enabled{{ tunnel.id }}" onchange="updateConfig{{ tunnel.id }}();">
+                </div>
+                <div class="field-row">
+                        <input type="checkbox" id="peer-v4-enabled{{ tunnel.id }}" name="ipv4_enabled" onchange="toggleTextbox(this, 'peer-v4{{ tunnel.id }}'); updateConfig{{ tunnel.id }}();" {% if tunnel.ipv4 %}checked{% endif %}>
+                        <label  for="peer-v4-enabled{{ tunnel.id }}">IPv4
+                    </label>
+                    <input type="text" class="field-row-input hidden" id="peer-v4{{ tunnel.id }}" name="ipv4" value="{{ tunnel.ipv4 }}" data-related-checkbox="peer-v4-enabled{{ tunnel.id }}" onchange="updateConfig{{ tunnel.id }}();">
+                </div>
+                <div class="field-row">
+                    
+                        <input type="checkbox" id="peer-v6-enabled{{ tunnel.id }}" name="ipv6_enabled" onchange="toggleTextbox(this, 'peer-v6{{ tunnel.id }}'); updateConfig{{ tunnel.id }}();" {% if tunnel.ipv6 %}checked{% endif %}>
+                     <label  for="peer-v6-enabled{{ tunnel.id }}">IPv6
+                    </label>
+                    <input type="text" class="field-row-input hidden" id="peer-v6{{ tunnel.id }}" name="ipv6" value="{{ tunnel.ipv6 }}" data-related-checkbox="peer-v6-enabled{{ tunnel.id }}" onchange="updateConfig{{ tunnel.id }}();">
+                </div>
+                <div class="field-row">
+                    
+                        <input type="checkbox" id="bgp-multi-protocol{{ tunnel.id }}" name="multiprotocol_bgp" onchange="updateConfig{{ tunnel.id }}();" {% if tunnel.multiprotocol_bgp %}checked{% endif %}>
+                         <label  for="bgp-multi-protocol{{ tunnel.id }}"> Multiprotocol BGP
+                    </label>
+                </div>
+                <div class="field-row">
+                    
+                        <input type="checkbox" id="bgp-extended-next-hop{{ tunnel.id }}" name="extended_next_hop" onchange="updateConfig{{ tunnel.id }}();" {% if tunnel.extended_next_hop %}checked{% endif %}>
+                          <label  for="bgp-extended-next-hop{{ tunnel.id }}">Extended Next Hop
+                    </label>
+                </div>
+                <div style="
+                margin-top: 10px;
+                width: 460px;    display: contents;"
+            >
+                    <pre id="outputConfigBird{{ tunnel.id }}"></pre>
+                    <pre id="outputConfigWg{{ tunnel.id }}"></pre>
+                    <script>
+                        function toggleTextbox(checkbox, textboxId) {
+                            const textbox = document.getElementById(textboxId);
+                            if (textbox) {
+                                if (checkbox.checked) {
+                                    textbox.classList.remove('hidden');
+                                } else {
+                                    textbox.classList.add('hidden');
+                                    textbox.value = ''; 
+                                }
+                            }
+                        }
+
+                        function updateConfig{{ tunnel.id }}(){
+                            let form = document.getElementById("editTunnelForm{{ tunnel.id }}");
+
+                            let output_bird = document.getElementById("outputConfigBird{{ tunnel.id }}");
+                            let output_wg = document.getElementById("outputConfigWg{{ tunnel.id }}");
+                            let endpoint_enabled = form.querySelector("input[id^='peer-endpoint-enabled{{ tunnel.id }}']").checked;
+                            let endpoint = form.querySelector("input[name='endpoint']").value;
+                            let ipv6ll_enabled = form.querySelector("input[id^='peer-v6ll-enabled{{ tunnel.id }}']").checked;
+                            let ipv4_enabled = form.querySelector("input[id^='peer-v4-enabled{{ tunnel.id }}']").checked;
+                            let ipv6_enabled = form.querySelector("input[id^='peer-v6-enabled{{ tunnel.id }}']").checked;
+                            let ipv6ll = form.querySelector("input[name='ipv6_link_local']").value;
+                            let ipv4 = form.querySelector("input[name='ipv4']").value;
+                            let ipv6 = form.querySelector("input[name='ipv6']").value;
+                            let bgp_mp = form.querySelector("input[id^='bgp-multi-protocol{{ tunnel.id }}']").checked;
+                            let bgp_enh = form.querySelector("input[id^='bgp-extended-next-hop{{ tunnel.id }}']").checked;
+                            let wg_key = form.querySelector("input[name='wireguard_public_key']").value;
+                        
+                            let wg_config = `# /etc/wireguard/dn42_0454.conf
+[Interface]
+PrivateKey = <your private key>
+ListenPort = 20454
+${ipv4_enabled ? `PostUp = ip address add dev ${ipv4} peer 172.22.159.100\n` : ''}${ipv6_enabled ? `PostUp = ip address add dev ${ipv6} peer fdef:fa9b:62b::1\n` : ''}${ipv6ll_enabled ? `PostUp = ip address add dev ${ipv6ll} peer fe80::454\n` : ''}
+[Peer]
+PublicKey = ${wg_key}
+Endpoint = dn42a.nedifinita.com:{{ session['ASN'][-5:] }}
+AllowedIPs = 10.0.0.0/8, 172.20.0.0/14, 172.31.0.0/16, fd00::/8, fe80::/64`;
+
+                            
+                            if (!bgp_mp) {
+                                bird_config = `# /etc/bird/peers/dn42_0454.conf
+protocol bgp dn42_0454_v4 from dnpeers {
+    neighbor 172.22.159.100 as 4242420454;
+    interface "dn42_0454";
+    ipv4 {};
+}
+
+protocol bgp dn42_0454_v6 from dnpeers {
+    neighbor fe80::454 as 4242420454;
+    neighbor fdef:fa9b:62b::1 as 4242420454;
+    interface "dn42_0454";
+    ipv6 {};
+}`;
+                            } else {
+                                bird_config = `# /etc/bird/peers/dn42_0454.conf
+protocol bgp dn42_0454 from dnpeers {
+    neighbor fe80::454 as 4242420454;
+    interface "dn42_0454";
+    ipv4 {
+        extended next hop ${bgp_enh ? 'on' : 'off'};
+    };
+    ipv6 {
+        extended next hop off;
+    };
+}`;
+                            }
+                        
+                            if (!form_validate(form)) {
+                                output_bird.innerText = "";
+                                output_wg.innerText = "";
+                                output_bird.style.display = 'none';
+                                output_wg.style.display = 'none';
+                                return;
+                            }
+                            output_bird.innerText = bird_config;
+                            output_wg.innerText = wg_config;
+                            output_wg.style.display = 'block';
+                            output_bird.style.display = 'block';
+                        }
+                        
+                        toggleTextbox(document.getElementById("peer-endpoint-enabled{{ tunnel.id }}"), "peer-endpoint{{ tunnel.id }}");
+                        toggleTextbox(document.getElementById("peer-v6ll-enabled{{ tunnel.id }}"), "peer-v6ll{{ tunnel.id }}");
+                        toggleTextbox(document.getElementById("peer-v4-enabled{{ tunnel.id }}"), "peer-v4{{ tunnel.id }}");
+                        toggleTextbox(document.getElementById("peer-v6-enabled{{ tunnel.id }}"), "peer-v6{{ tunnel.id }}");
+                        
+                        updateConfig{{ tunnel.id }}();
+                    </script>
+                </div>
+                <div id="peer-invalid-note{{ tunnel.id }}" class="mdui-text-color-red"></div>
+                <button type="submit" class="button">Save Changes</button>
+            </form>
+        </div>
+
+    </div>
+    {% endfor %}
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script>
+        let currentMaxZIndex = 1000;
+
+        function moveToTop(modal) {
+            if (modal.id === 'dashboardWindow') return;
+            let currentZ = parseInt(modal.style.zIndex || 1);
+            if (currentZ < currentMaxZIndex) {
+                modal.style.zIndex = ++currentMaxZIndex;
+            }
+            document.querySelectorAll('.title-bar').forEach(function(element) {
+            element.classList.add('inactive');
+            });
+            modal.querySelector('.title-bar').classList.remove('inactive');
+            document.querySelector('#dashboardWindow .title-bar').classList.remove('inactive');
+        }
+
+        function showEditTunnelModal(tunnelId) {
+            const modal = document.getElementById('editTunnelModal' + tunnelId);
+            modal.style.display = 'block';
+            modal.style.zIndex = ++currentMaxZIndex;
+            document.querySelectorAll('.title-bar').forEach(function(element) {
+            element.classList.add('inactive');
+            });
+            modal.querySelector('.title-bar').classList.remove('inactive');
+            document.querySelector('#dashboardWindow .title-bar').classList.remove('inactive');
+
+
+        }
+
+        function showAddTunnelModal() {
+            const modal = document.getElementById('addTunnelModal');
+            modal.style.display = 'block';
+            modal.style.zIndex = ++currentMaxZIndex;
+            document.querySelectorAll('.title-bar').forEach(function(element) {
+            element.classList.add('inactive');
+            });
+            modal.querySelector('.title-bar').classList.remove('inactive');
+            document.querySelector('#dashboardWindow .title-bar').classList.remove('inactive');
+
+
+        }
+
+        function closeAndResetModal(modalId, formId) {
+            const modal = document.getElementById(modalId);
+            const form = document.getElementById(formId);
+            modal.style.display = 'none';
+            if (form) {
+                form.reset();
+                // 重新触发所有checkbox的change事件来重置相关输入框
+                form.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    const event = new Event('change');
+                    checkbox.dispatchEvent(event);
+                });
+                // 如果是添加表单，重新运行updateConfigAdd
+                if (formId === 'editTunnelFormAdd') {
+                    updateConfigAdd();
+                } else {
+                    // 为编辑表单运行对应的updateConfig
+                    const tunnelId = modalId.replace('editTunnelModal', '');
+                    eval(`updateConfig${tunnelId}()`);
+                }
+            }
+        }
+
+        function checkTunnels() {
+            if ($('tbody tr').length === 0) {
+                $('#addTunnelButton').show();
+            } else {
+                $('#addTunnelButton').hide();
+            }
+        }
+
+        $(function() {
+            // Initialize dashboard window to always be at bottom
+            $('.window').first().attr('id', 'dashboardWindow').css('z-index', 1);
+
+            // Update drag handlers
+            $(".draggable").on("mousedown touchstart", function(e) {
+                var $drag = $(this).closest(".window");
+                const originalWidth = $drag.width(); // 保存原始宽度
+                var windowWidth = $(window).width();
+                var windowHeight = $(window).height();
+                var startCoords = getEventCoordinates(e);
+                var pos_y = $drag.position().top - startCoords.y;
+                var pos_x = $drag.position().left - startCoords.x;
+
+                moveToTop($drag[0]);
+
+                $(document).on("mousemove.dragEvent touchmove.dragEvent", function(e) {
+                    var coords = getEventCoordinates(e);
+                    var newTop = coords.y + pos_y;
+                    var newLeft = coords.x + pos_x;
+
+                    newTop = Math.max(0, Math.min(newTop, windowHeight - $drag.height()));
+                    newLeft = Math.max(0, Math.min(newLeft, windowWidth - $drag.width()));
+
+                    $drag.css({
+                        top: newTop + 'px',
+                        left: newLeft + 'px'
+                    });
+
+                    $drag.width(originalWidth);
+
+                    e.preventDefault();
+                });
+
+                $(document).on("mouseup.dragEvent touchend.dragEvent", function() {
+                    $(document).off("mousemove.dragEvent touchmove.dragEvent mouseup.dragEvent touchend.dragEvent");
+                });
+
+                e.preventDefault();
+            });
+
+            function getEventCoordinates(e) {
+                if (e.type.startsWith('touch')) {
+                    return {
+                        x: e.originalEvent.touches[0].pageX,
+                        y: e.originalEvent.touches[0].pageY
+                    };
+                } else {
+                    return {
+                        x: e.pageX,
+                        y: e.pageY
+                    };
+                }
+            }
+
+            $(".window").on("mousedown touchstart", function() {
+                moveToTop(this);
+                
+            });
+
+            $(".title-bar-controls button").on("touchend", function(e) {
+                e.preventDefault();
+                $(this).trigger("click");
+            });
+            if ($('tbody tr').length > 0) {
+                $('button[onclick="showAddTunnelModal();updateConfigAdd();"]').hide();
+            }
+            $('form[action*="delete_tunnel"]').on('submit', function() {
+                setTimeout(checkTunnels, 500);
+            });
+
+            checkTunnels();
+        });
+    </script>
+</body>
+
+</html>
