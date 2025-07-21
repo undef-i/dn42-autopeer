@@ -1,4 +1,4 @@
-# DN42 AutoPeer
+# [WIP] DN42 AutoPeer
 
 Automated DN42 peering management system. Handles WireGuard tunnel setup and BGP configuration through web interface.
 
